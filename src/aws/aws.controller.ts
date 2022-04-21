@@ -8,6 +8,7 @@ import { AwsService } from './aws.service';
 export class AwsController {
   constructor(private readonly awsService: AwsService) {}
 
+  // uploads에 저장된 파일을 S3 Bucket에 올리기
   @Get('aws/upload/storage/file')
   @ApiOperation({
     summary: 'AWS S3버킷으로 저장된 파일을 전송합니다.',
