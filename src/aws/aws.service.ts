@@ -60,4 +60,17 @@ export class AwsService {
       throw new HttpException(err.message, err.status ? err.status : 500);
     }
   }
+
+  remove(fileName: string) {
+    fs.rm(pa + '/uploads/' + fileName, { recursive: true }, (err) => {
+      if (err) throw err;
+      console.log(`file deleted.....`);
+      console.log(`name : ${fileName}`);
+    });
+
+    return {
+      result: true,
+      message: `"${fileName}"은 삭제되었습니다.`,
+    };
+  }
 }
