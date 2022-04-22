@@ -1,5 +1,5 @@
 // /src/aws/aws.service.ts
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -10,7 +10,7 @@ const pa = path.dirname(__dirname).replace('/dist', '');
 @Injectable()
 export class AwsService {
   // S3버킷을 .env파일에서 입력한다.
-  private AWS_S3_BUCKET = process.env.S3_BUCKET;
+  private AWS_S3_BUCKET: String = process.env.S3_BUCKET;
   // s3를 사용하기 위해서 IAM계정의 ACCESS, SECRET_ACCESS KEY를 입력한다.
   private s3 = new AWS.S3({
     accessKeyId: process.env.S3_ACCESS_KEY,
@@ -59,6 +59,29 @@ export class AwsService {
       console.log(err);
       throw new HttpException(err.message, err.status ? err.status : 500);
     }
+  }
+
+  // S3버킷에서 다운로드 받은 파일을 저장합니다.
+  downLoad(Key: string, saveName: string) {
+    // getObject에 인자로 넣을 params을 작성합니다.
+    const params = {
+      Bucket: process.env.S3_BUCKET,
+      Key, // 다운로드 받을 파일 이름
+    };
+
+    // s3를 이용하여 해당 params의 값을 확인후 callback함수의 data에 넣습니다
+    this.s3.getObject(params, async function (error, data) {
+      if (error != null) {
+        // 에러시 에러 출력(서버 멈춤)
+        throw new HttpException(error, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        console.log('data : ', data);
+        //다운로드 한 파일을 downloads폴더에 저장한다.
+        fs.createWriteStream(pa + '/downloads/' + saveName).write(data.Body);
+      }
+    });
+
+    return true;
   }
 
   remove(fileName: string) {

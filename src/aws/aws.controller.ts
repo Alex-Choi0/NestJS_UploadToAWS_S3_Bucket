@@ -79,4 +79,17 @@ export class AwsController {
     // data변수를 클라이언트 쪽에 전달한다.
     return data;
   }
+
+  // 파일을 S3버킷에서 다운로드 받습니다
+  @Get('getFile/')
+  @ApiOperation({ summary: '파일을 S3 Bucket에서 서버쪽으로 download' })
+  async download(
+    // S3버킷에서 다운로드 할 파일 이름 입니다.
+    @Query('downloadName') downloadName: string,
+    // 서버에 저장할 파일 이름 입니다.
+    @Query('saveName') saveName: string,
+  ) {
+    // 다운로드를 진행하고 결과값을 클라이언트에 보내줍니다.
+    return await this.awsService.downLoad(downloadName, saveName);
+  }
 }
