@@ -1,6 +1,7 @@
 // /src/aws/aws.controller.ts
 import {
   Controller,
+  Get,
   Post,
   Query,
   UploadedFile,
@@ -14,7 +15,6 @@ import { AwsService } from './aws.service';
 @Controller('aws')
 export class AwsController {
   constructor(private readonly awsService: AwsService) {}
-
 
   // uploads에 저장된 파일을 S3 Bucket에 올리기
   @Get('aws/upload/storage/file')
@@ -38,7 +38,7 @@ export class AwsController {
     // 업로드를 실행하고 해당 return값을 client쪽으로 전달한다.
     return await this.awsService.uploadFile(file);
   }
-  
+
   @Post('aws/upload/client/file')
   @ApiOperation({ summary: '파일을 서버쪽으로 upload' })
   @ApiConsumes('multipart/form-data')
