@@ -1,8 +1,10 @@
 // /src/aws/aws.service.ts
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
+import { S3 } from 'aws-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolve } from 'path/posix';
 
 // 현재 실행되고 있는 root경로를 확인하고 pa에 저장
 const pa = path.dirname(__dirname).replace('/dist', '');
@@ -32,6 +34,34 @@ export class AwsService {
       savename, // S3버킷에 저장할 파일 이름
       file.mimetype, // 파일타입 : 위 코드에서는 'application/octet-stream'을 사용합니다.
     );
+  }
+
+  // AWS 버킷에 여러 파일 upload
+  async uploadMultiFiles(files) {
+    // fileName은 실제 S3 버킷에 저장될시 파일 이름을 말합니다
+
+    files.forEach((file)=> {
+      let images = [];
+      return new Promise(async (res, rej) => {
+        const splitFile = file.originalname.split('.');
+        const random = Date.now();
+        const fileName = `${splitFile[0]}_${random}.${splitFile[1]}`;
+        const params = {
+          Bucket: String(this.AWS_S3_BUCKET),
+          Key: fileName,
+          Body: file.buffer,
+        };
+
+        const uploadResponse = await this.s3.upload(params).promise();
+
+        images.push(uploadResponse);
+
+        if(images.length === files.length){
+          res(images);
+        }
+      })
+      
+    })
   }
 
   // 실제 AWS에 파일을 업로드 하는 method
