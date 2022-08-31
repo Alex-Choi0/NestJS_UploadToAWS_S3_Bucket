@@ -5,9 +5,10 @@ import {
   Post,
   Query,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AwsService } from './aws.service';
 
@@ -80,6 +81,38 @@ export class AwsController {
     return data;
   }
 
+  // /src/aws/aws.controller.ts
+  // 클라이언트에서 받은 복수의 파일들을 S3버킷에 업로드 합니다.
+  @Post('aws/upload/client/files')
+  @ApiOperation({
+    summary: '여러파일들을 S3버킷으로 업로드',
+    description: '클라이언트에서 받은 파일들을 바로 S3버킷으로 업로드 한다.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    type: 'multipart/form-data',
+    schema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  @UseInterceptors(FilesInterceptor('files'))
+  async uploadFiles(@UploadedFiles() files: Array<Express.Multer.File>) {
+    console.log('uploadFiles API Active');
+    const data = await this.awsService.uploadMultiFiles(files);
+    console.log('upload data : ', data);
+    return data;
+  }
+
+  // /src/aws/aws.controller.ts
   // 파일을 S3버킷에서 다운로드 받습니다
   @Get('getFile/')
   @ApiOperation({ summary: '파일을 S3 Bucket에서 서버쪽으로 download' })

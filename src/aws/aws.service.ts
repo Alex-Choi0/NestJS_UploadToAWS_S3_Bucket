@@ -1,10 +1,8 @@
 // /src/aws/aws.service.ts
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
-import { S3 } from 'aws-sdk';
 import * as fs from 'fs';
 import * as path from 'path';
-import { resolve } from 'path/posix';
 
 // 현재 실행되고 있는 root경로를 확인하고 pa에 저장
 const pa = path.dirname(__dirname).replace('/dist', '');
@@ -23,6 +21,12 @@ export class AwsService {
     return fs.readFileSync(pa + '/uploads/' + fileName);
   }
 
+  // AWS 버킷에 여러 파일 upload
+  async uploadMultiFiles(files) {
+    // fileName은 실제 S3 버킷에 저장될시 파일 이름을 말합니다
+    return await AwsService.uploadToS3MultiFiles(files);
+  }
+
   // AWS 버킷에 파일 upload
   async uploadFile(file) {
     // savename은 실제 S3 버킷에 저장될시 파일 이름을 말합니다
@@ -34,34 +38,6 @@ export class AwsService {
       savename, // S3버킷에 저장할 파일 이름
       file.mimetype, // 파일타입 : 위 코드에서는 'application/octet-stream'을 사용합니다.
     );
-  }
-
-  // AWS 버킷에 여러 파일 upload
-  async uploadMultiFiles(files) {
-    // fileName은 실제 S3 버킷에 저장될시 파일 이름을 말합니다
-
-    files.forEach((file)=> {
-      let images = [];
-      return new Promise(async (res, rej) => {
-        const splitFile = file.originalname.split('.');
-        const random = Date.now();
-        const fileName = `${splitFile[0]}_${random}.${splitFile[1]}`;
-        const params = {
-          Bucket: String(this.AWS_S3_BUCKET),
-          Key: fileName,
-          Body: file.buffer,
-        };
-
-        const uploadResponse = await this.s3.upload(params).promise();
-
-        images.push(uploadResponse);
-
-        if(images.length === files.length){
-          res(images);
-        }
-      })
-      
-    })
   }
 
   // 실제 AWS에 파일을 업로드 하는 method
@@ -91,6 +67,7 @@ export class AwsService {
     }
   }
 
+  // /src/aws/aws.service.ts
   // S3버킷에서 다운로드 받은 파일을 저장합니다.
   downLoad(Key: string, saveName: string) {
     // getObject에 인자로 넣을 params을 작성합니다.
@@ -125,5 +102,36 @@ export class AwsService {
       result: true,
       message: `"${fileName}"은 삭제되었습니다.`,
     };
+  }
+
+  private static async uploadToS3MultiFiles(files) {
+    const s3 = new AWS.S3({
+      accessKeyId: process.env.S3_ACCESS_KEY,
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    });
+    let images = [];
+    files.forEach((file) => {
+      return new Promise(async (res, rej) => {
+        try {
+          const splitFile = file.originalname.split('.');
+          const random = Date.now();
+          const fileName = `${splitFile[0]}_${random}.${splitFile[1]}`;
+          const params = {
+            Bucket: process.env.S3_BUCKET,
+            Key: fileName,
+            Body: file.buffer,
+          };
+
+          const uploadResponse = await s3.upload(params).promise();
+          images.push(uploadResponse);
+          if (images.length === files.length) {
+            res(images);
+          }
+        } catch (err) {
+          console.log('files uploads Error : ', err);
+          rej(err);
+        }
+      });
+    });
   }
 }
