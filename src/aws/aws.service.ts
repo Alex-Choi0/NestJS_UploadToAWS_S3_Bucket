@@ -24,7 +24,7 @@ export class AwsService {
   // AWS 버킷에 여러 파일 upload
   async uploadMultiFiles(files) {
     // fileName은 실제 S3 버킷에 저장될시 파일 이름을 말합니다
-    return await AwsService.uploadToS3MultiFiles(files);
+    return AwsService.uploadToS3MultiFiles(files);
   }
 
   // AWS 버킷에 파일 upload
@@ -104,13 +104,51 @@ export class AwsService {
     };
   }
 
+  // private static async uploadToS3MultiFiles(files) {
+  //   const s3 = new AWS.S3({
+  //     accessKeyId: process.env.S3_ACCESS_KEY,
+  //     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  //   });
+  //   let images = [];
+  //   files.forEach((file) => {
+  //     return new Promise(async (res, rej) => {
+  //       try {
+  //         const splitFile = file.originalname.split('.');
+  //         const random = Date.now();
+  //         const fileName = `${splitFile[0]}_${random}.${splitFile[1]}`;
+  //         const params = {
+  //           Bucket: process.env.S3_BUCKET,
+  //           Key: fileName,
+  //           Body: file.buffer,
+  //         };
+
+  //         const uploadResponse = await s3.upload(params).promise();
+  //         console.log('uploadResponse : ', uploadResponse);
+  //         images.push(uploadResponse);
+  //         if (images.length === files.length) {
+  //           res(images);
+  //         }
+  //       } catch (err) {
+  //         console.log('files uploads Error : ', err);
+  //         rej(err);
+  //       }
+  //     });
+  //   });
+  // }
+
+  /*
+  이 코드에서는 여러 파일을 AWS S3에 업로드하는 로직을 구현하고 있습니다. 그러나 주어진 코드에는 Promise.all을 사용하지 않아서, 비동기 작업들이 제대로 처리되지 않고 있습니다. forEach 메소드 내에서 new Promise를 생성하고 있지만, 이 프로미스들이 외부에서 기다려지지 않고 있습니다.
+
+  따라서, 각 파일의 업로드를 Promise로 감싸고, 이 프로미스들의 배열을 Promise.all을 사용하여 처리해야 합니다. 이렇게 하면 모든 파일이 업로드된 후에 결과가 반환됩니다. 수정된 코드는 아래와 같습니다:
+  */
+
   private static async uploadToS3MultiFiles(files) {
     const s3 = new AWS.S3({
       accessKeyId: process.env.S3_ACCESS_KEY,
       secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
     });
-    let images = [];
-    files.forEach((file) => {
+
+    const uploadPromises = files.map((file) => {
       return new Promise(async (res, rej) => {
         try {
           const splitFile = file.originalname.split('.');
@@ -123,15 +161,15 @@ export class AwsService {
           };
 
           const uploadResponse = await s3.upload(params).promise();
-          images.push(uploadResponse);
-          if (images.length === files.length) {
-            res(images);
-          }
+          console.log('uploadResponse : ', uploadResponse);
+          res(uploadResponse);
         } catch (err) {
           console.log('files uploads Error : ', err);
           rej(err);
         }
       });
     });
+
+    return Promise.all(uploadPromises);
   }
 }
